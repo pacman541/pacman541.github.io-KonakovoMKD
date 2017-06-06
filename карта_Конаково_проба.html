@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Leaflet Map</title>
+    <meta charset="utf-8" />
+    <link 
+        rel="stylesheet" 
+        href="http://cdn.leafletjs.com/leaflet-0.7/leaflet.css"
+    />
+<style>
+        body {
+            padding: 0;
+            margin: 0;
+        }
+        html, body, #map {                     
+            height: 100%;
+            width: 100%;
+        }
+        .info { 
+            padding: 6px 8px;
+            font: 14px/16px Tahoma;
+            background: white;
+            background: rgba(255,255,255,0.8);
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            border-radius: 5px;
+        } 
+        .info h4 { 
+            margin: 0 0 5px;
+            color: #777;
+        }
+        .legend { 
+            text-align: left; 
+            line-height: 21px;
+            color: #000;
+        } 
+        .legend i { 
+            width: 18px; 
+            height: 18px;
+            padding: 1px;
+            float: left; 
+            margin-right: 8px; 
+            opacity: 1;
+        }
+</style>
+</head>
+<body>
+      
+    <div id="map"></div>
+
+    <script
+        src="http://cdn.leafletjs.com/leaflet-0.7/leaflet.js">
+    </script>
+<script type="text/javascript" src="buildings.js."></script>
+    </script>
+<script type="text/javascript" src="all_buildings.js"></script>
+    <script>
+        var map = L.map('map').setView([56.71, 36.77], 15);
+        var kosmosnimki_attribution = '<a href="http://osm.kosmosnimki.ru/" target="_blank">ScanEx</a>';
+        mapLink = 
+            '<a href="http://openstreetmap.org">OpenStreetMap</a>';
+               L.tileLayer(
+            'http://{s}.tile.osm.kosmosnimki.ru/night/{z}/{x}/{y}.png', {
+            attribution: 'Map data &copy; ' + mapLink + ', ' + kosmosnimki_attribution,
+            maxZoom: 18,
+            }).addTo(map);
+        
+        	var info = L.control();
+
+	info.onAdd = function (map) {
+		this._div = L.DomUtil.create('div', 'info');
+		this.update();
+		return this._div;
+	};
+
+	info.update = function (props) {
+		this._div.innerHTML = '<h4>Многоквартирные дома города Конаково</h4>' +  (props ?
+			'<b>' + props.street + ', дом ' + props.housenumber + '<br/>' + ' год постройки: ' + props.year + '</b>'
+			: 'Наведите курсор на здание');
+	};
+
+	info.addTo(map);
+        
+        function getColor(age) {
+    return age >= 1991 ? '#21f3f1' :
+           age >= 1982  ? '#21f321' :
+           age >= 1964  ? '#f3f121' :
+           age >= 1953  ? '#ffa349' :
+           age >= 1917   ? '#f65252' :
+           age >= 1800   ? '#f550f5' :
+                           '#FFEDA0';
+}
+        function style(feature) {
+		return {
+			weight: 0,
+			opacity: 1,
+			color: 'grey',
+			fillOpacity: 1,
+			fillColor: getColor(feature.properties.year)
+		};
+	}
+      
+        
+    function highlightFeature(e) {
+		var layer = e.target;
+		layer.setStyle({
+			weight: 0,
+			color: '#666',
+			dashArray: '',
+			fillOpacity: 1
+		});
+
+		if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
+			layer.bringToFront();
+		}
+
+		info.update(layer.feature.properties);
+	}
+
+	var geojson;
+
+	function resetHighlight(e) {
+		geojson.resetStyle(e.target);
+		info.update();
+	}
+
+	function zoomToFeature(e) {
+		map.fitBounds(e.target.getBounds());
+	}
+
+	function onEachFeature(feature, layer) {
+		layer.on({
+			mouseover: highlightFeature,
+			mouseout: resetHighlight,
+			click: zoomToFeature
+		});
+	}    
+        
+        geojson = L.geoJson(buildings, {
+		style: style,
+        onEachFeature: onEachFeature
+	}).addTo(map);
+        
+        var legend = L.control({position: 'bottomright'});
+
+	legend.onAdd = function (map) {
+
+		var div = L.DomUtil.create('div', 'info legend'),
+			grades = [1800, 1917, 1953, 1964, 1982, 1991],
+			labels = [],
+			from, to;
+
+		for (var i = 0; i < grades.length; i++) {
+			from = grades[i];
+			to = grades[i + 1];
+
+			labels.push(
+				'<i style="background:' + getColor(from + 1) + '"></i> ' +
+				((from < 1917) ? ('до ' + to) : (to < 1992) ? (from + '&ndash;' + to) : 'после 1991'));
+		}
+
+		div.innerHTML = labels.join('<br>');
+		return div;
+	};
+
+	legend.addTo(map);
+   
+    </script>
+    
+</body>
+</html>
